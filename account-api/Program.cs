@@ -1,3 +1,8 @@
+using System.Net;
+using account_api.DTO;
+using account_api.Services.Implementations;
+using account_api.Services.Interfaces;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -5,6 +10,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddHttpClient();
+
+builder.Services.AddScoped<IAccountService, AccountService>();
 
 
 var app = builder.Build();
@@ -18,28 +25,22 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
 
-app.MapGet("/weatherforecast", () =>
+app.MapGet("/", ( ) => "Hello Wolrd");
+
+app.MapPost("/account/register", async (RegisterRequest request, IAccountService accountService) =>
 {
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateTime.Now.AddDays(index),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
+    var result = await accountService.Register(request);
+
+    switch (result.StatusCode)
+    {
+        case (int)HttpStatusCode.OK:
+            return Results.Ok(result);
+        case (int)HttpStatusCode.Conflict:
+            return Results.Conflict(result);
+        default:
+            return Results.Problem("An error occured.", statusCode: result.StatusCode);
+    }
+});
 
 app.Run();
-
-record WeatherForecast(DateTime Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
