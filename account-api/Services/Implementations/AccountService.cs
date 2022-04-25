@@ -19,9 +19,51 @@ namespace account_api.Services.Implementations
             _configuration = configuration;
             _httpClientFactory = httpClientFactory;
         }
-        public Task<GenericResponse<AccountResponse>> Login(LoginRequest request)
+        public async Task<GenericResponse<AccountResponse>> Login(LoginRequest request)
         {
-            throw new NotImplementedException();
+            try
+            {
+                var useraccount = await GetUserAccount(request.Email);
+                if(useraccount == null)
+                {
+                    return new GenericResponse<AccountResponse>
+                    {
+                        StatusCode = (int)HttpStatusCode.NotFound,
+                        ResponseMessage = "User not found"
+                    };
+                }
+                else
+                {
+                    bool isPasswordCorrect = IsPasswordCorrect(request.Password, useraccount.PasswordSalt, useraccount.PasswordHash);
+                    if(!isPasswordCorrect)
+                    {
+                        return new GenericResponse<AccountResponse>
+                        {
+                            StatusCode = (int)HttpStatusCode.BadRequest,
+                            ResponseMessage = "Incorrect Password"
+                        };
+                    }
+
+                    return new GenericResponse<AccountResponse>
+                    {
+                        Data = new AccountResponse{
+                            Email = useraccount.Email, 
+                            UserId = useraccount.UserId
+                        },
+                        StatusCode = (int)HttpStatusCode.OK,
+                        ResponseMessage = "Authentication Successful"
+                    };
+                }
+            }
+            catch (System.Exception)
+            {
+                return new GenericResponse<AccountResponse>
+                {
+                    Data = null,
+                    ResponseMessage = "Server Error",
+                    StatusCode = (int)HttpStatusCode.InternalServerError
+                };
+            }
         }
 
         public async Task<GenericResponse<AccountResponse>> Register(RegisterRequest request)

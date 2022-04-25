@@ -43,4 +43,21 @@ app.MapPost("/account/register", async (RegisterRequest request, IAccountService
     }
 });
 
+app.MapPost("/account/login", async (LoginRequest request, IAccountService accountService) =>
+{
+    var result = await accountService.Login(request);
+
+    switch (result.StatusCode)
+    {
+        case (int)HttpStatusCode.OK:
+            return Results.Ok(result);
+        case (int)HttpStatusCode.BadRequest:
+            return Results.BadRequest(result);
+        case (int)HttpStatusCode.NotFound:
+            return Results.NotFound(result);
+        default:
+            return Results.Problem("An error occured.", statusCode: result.StatusCode);
+    }
+});
+
 app.Run();
